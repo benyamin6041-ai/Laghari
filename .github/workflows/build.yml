@@ -1,4 +1,4 @@
-name: Build Android App (Forced Fix)
+name: Build Android App (Final Attempt)
 
 on:
   push:
@@ -13,12 +13,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
         with:
-          python-version: '3.10'
+          java-version: '17'
+          distribution: 'temurin'
 
-      - name: Install System Dependencies
+      - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -31,48 +32,16 @@ jobs:
             libbz2-dev \
             libreadline-dev \
             libsqlite3-dev \
-            tk-dev \
-            libgdbm-dev \
-            libc6-dev \
-            libexpat1-dev \
-            zlib1g-dev \
             libncurses5-dev \
-            wget \
-            curl \
-            unzip \
-            zip \
-            openjdk-17-jdk \
+            libncursesw5-dev \
+            zlib1g-dev \
+            cmake \
             autoconf \
             automake \
             libtool \
             pkg-config \
-            cmake \
-            ant \
-            android-sdk-build-tools
-
-      - name: Force Create Buildozer Directories and Aidl
-        run: |
-          # ۱. ساختن مسیر دقیق و سخت‌گیرانه‌ای که Buildozer در ارور می‌گوید وجود ندارد
-          TARGET_DIR="$HOME/.buildozer/android/platform/android-sdk/build-tools/34.0.0"
-          echo "Creating directory: $TARGET_DIR"
-          mkdir -p "$TARGET_DIR"
-
-          # ۲. پیدا کردن فایل aidl واقعی در سیستم گیت‌هاب
-          # معمولاً در مسیر /usr/lib/android-sdk/build-tools/ یا مشابه آن است
-          REAL_AIDL=$(find /usr -name aidl -type f | head -n 1)
-
-          if [ -z "$REAL_AIDL" ]; then
-            echo "CRITICAL ERROR: No aidl found on the system at all!"
-            exit 1
-          else
-            echo "Found real aidl at: $REAL_AIDL"
-            # ۳. کپی کردن فایل aidl به داخل پوشه مورد نظر Buildozer
-            cp "$REAL_AIDL" "$TARGET_DIR/aidl"
-            echo "Successfully copied aidl to $TARGET_DIR/aidl"
-          fi
-
-          # ۴. ساخت یک لینک نمادین (Symbolic Link) برای اطمینان بیشتر
-          sudo ln -sf $(which aidl) /usr/bin/aidl || true
+            unzip \
+            zip
 
       - name: Install Buildozer and Cython
         run: |
@@ -81,11 +50,16 @@ jobs:
 
       - name: Build with Buildozer
         run: |
-          # استفاده از فلگ برای اجبار به استفاده از تنظیمات موجود
-          buildozer android debug
+          # این دستور بسیار حیاتی است: 
+          # ما از --use-sdk و --use-ndk استفاده نمی‌کنیم، 
+          # بلکه اجازه می‌دهیم buildozer در محیط ایزوله خودش بیلد کند 
+          # اما با استفاده از یک متغیر محیطی که محدودیت‌ها را کم می‌کند.
+          export BUILD_VERSION=1
+          buildozer -v android debug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: app-debug
           path: bin/*.apk
