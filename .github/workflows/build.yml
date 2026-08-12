@@ -53,24 +53,24 @@ jobs:
 
       - name: Fix Aidl Path for Buildozer
         run: |
-          # ساخت پوشه مورد نیاز Buildozer
-          mkdir -p $HOME/.buildozer/android/platform/android-sdk/build-tools
+          # پیدا کردن مسیر دقیق aidl در سیستم
+          AIDL_BIN=$(which aidl)
           
-          # پیدا کردن مسیر واقعی aidl در سیستم و لینک کردن آن به پوشه buildozer
-          AIDL_PATH=$(which aidl || find /usr/lib/android-sdk/build-tools -name aidl | head -n 1)
-          if [ -z "$AIDL_PATH" ]; then
-             echo "Aidl not found in system, trying fallback..."
-             # اگر پیدا نشد، از مسیر پیش‌فرض اوبونتو استفاده می‌کنیم
-             AIDL_PATH="/usr/lib/android-sdk/build-tools/34.0.0/aidl" 
+          if [ -z "$AIDL_BIN" ]; then
+            echo "Error: aidl not found in system path"
+            exit 1
           fi
+
+          echo "Found aidl at: $AIDL_BIN"
+
+          # ساخت ساختار پوشه‌بندی دقیق Buildozer
+          # ما مستقیماً فایل را در پوشه build-tools کپی می‌کنیم
+          mkdir -p $HOME/.buildozer/android/platform/android-sdk/build-tools/34.0.0/
           
-          echo "Linking $AIDL_PATH to Buildozer directory"
-          # ایجاد لینک برای اطمینان از اینکه Buildozer آن را می‌بیند
-          sudo ln -sf $(which aidl) /usr/bin/aidl
+          # کپی کردن فایل aidl به پوشه هدف
+          cp "$AIDL_BIN" "$HOME/.buildozer/android/platform/android-sdk/build-tools/34.0.0/"
           
-          # ایجاد پوشه برای ابزارهای ساخت در مسیری که Buildozer انتظار دارد
-          mkdir -p $HOME/.buildozer/android/platform/android-sdk/build-tools/34.0.0
-          cp $(which aidl) $HOME/.buildozer/android/platform/android-sdk/build-tools/34.0.0/
+          echo "Successfully copied aidl to Buildozer directory"
 
       - name: Install Buildozer dependencies
         run: |
@@ -79,7 +79,6 @@ jobs:
 
       - name: Build with Buildozer
         run: |
-          # استفاده از دستور build برای اجبار به استفاده از تنظیمات جدید
           buildozer android debug
 
       - name: Upload APK
