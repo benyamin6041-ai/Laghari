@@ -14,18 +14,21 @@ jobs:
       - name: Install System Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y python3-pip git zip unzip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev
+          # پکیج libtinfo-dev جایگزین libtinfo5 شده است
+          sudo apt-get install -y python3-pip git zip unzip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo-dev cmake libffi-dev libssl-dev
 
       - name: Install Buildozer
-        run: pip install buildozer cython
+        run: |
+          pip install --upgrade pip
+          pip install buildozer cython
 
       - name: Build with Buildozer
         run: |
-          # اجبار به استفاده از SDK و NDK نصب شده در سیستم به جای دانلود
-          export ANDROID_HOME=/usr/local/lib/android/sdk
-          export ANDROID_NDK_HOME=/usr/local/lib/android/sdk/ndk-bundle
+          # مسیرهای پیش‌فرض را به صورت دستی تنظیم می‌کنیم
+          export ANDROID_HOME=$HOME/android-sdk
+          export ANDROID_NDK_HOME=$HOME/android-ndk
           
-          # اجرای بیلد
+          # این دستور باعث می‌شود buildozer به جای تلاش برای دانلود، از محیط استفاده کند
           buildozer -v android debug
 
       - name: Upload APK
