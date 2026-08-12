@@ -11,10 +11,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4 # آپدیت به نسخه جدید
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v5 # آپدیت به نسخه جدید
+        uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
@@ -48,9 +48,29 @@ jobs:
             pkg-config \
             cmake \
             ant \
-            android-sdk \
             android-sdk-platform-tools \
             android-sdk-build-tools
+
+      - name: Fix Aidl Path for Buildozer
+        run: |
+          # ساخت پوشه مورد نیاز Buildozer
+          mkdir -p $HOME/.buildozer/android/platform/android-sdk/build-tools
+          
+          # پیدا کردن مسیر واقعی aidl در سیستم و لینک کردن آن به پوشه buildozer
+          AIDL_PATH=$(which aidl || find /usr/lib/android-sdk/build-tools -name aidl | head -n 1)
+          if [ -z "$AIDL_PATH" ]; then
+             echo "Aidl not found in system, trying fallback..."
+             # اگر پیدا نشد، از مسیر پیش‌فرض اوبونتو استفاده می‌کنیم
+             AIDL_PATH="/usr/lib/android-sdk/build-tools/34.0.0/aidl" 
+          fi
+          
+          echo "Linking $AIDL_PATH to Buildozer directory"
+          # ایجاد لینک برای اطمینان از اینکه Buildozer آن را می‌بیند
+          sudo ln -sf $(which aidl) /usr/bin/aidl
+          
+          # ایجاد پوشه برای ابزارهای ساخت در مسیری که Buildozer انتظار دارد
+          mkdir -p $HOME/.buildozer/android/platform/android-sdk/build-tools/34.0.0
+          cp $(which aidl) $HOME/.buildozer/android/platform/android-sdk/build-tools/34.0.0/
 
       - name: Install Buildozer dependencies
         run: |
@@ -59,10 +79,11 @@ jobs:
 
       - name: Build with Buildozer
         run: |
+          # استفاده از دستور build برای اجبار به استفاده از تنظیمات جدید
           buildozer android debug
 
       - name: Upload APK
-        uses: actions/upload-artifact@v4 # اصلاح اصلی برای رفع خطای Deprecated
+        uses: actions/upload-artifact@v4
         with:
           name: app-debug
           path: bin/*.apk
