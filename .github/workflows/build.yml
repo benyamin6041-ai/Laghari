@@ -1,4 +1,4 @@
-name: Build Android App
+name: Build Android App (Forced Fix)
 
 on:
   push:
@@ -47,7 +47,32 @@ jobs:
             libtool \
             pkg-config \
             cmake \
-            ant
+            ant \
+            android-sdk-build-tools
+
+      - name: Force Create Buildozer Directories and Aidl
+        run: |
+          # ۱. ساختن مسیر دقیق و سخت‌گیرانه‌ای که Buildozer در ارور می‌گوید وجود ندارد
+          TARGET_DIR="$HOME/.buildozer/android/platform/android-sdk/build-tools/34.0.0"
+          echo "Creating directory: $TARGET_DIR"
+          mkdir -p "$TARGET_DIR"
+
+          # ۲. پیدا کردن فایل aidl واقعی در سیستم گیت‌هاب
+          # معمولاً در مسیر /usr/lib/android-sdk/build-tools/ یا مشابه آن است
+          REAL_AIDL=$(find /usr -name aidl -type f | head -n 1)
+
+          if [ -z "$REAL_AIDL" ]; then
+            echo "CRITICAL ERROR: No aidl found on the system at all!"
+            exit 1
+          else
+            echo "Found real aidl at: $REAL_AIDL"
+            # ۳. کپی کردن فایل aidl به داخل پوشه مورد نظر Buildozer
+            cp "$REAL_AIDL" "$TARGET_DIR/aidl"
+            echo "Successfully copied aidl to $TARGET_DIR/aidl"
+          fi
+
+          # ۴. ساخت یک لینک نمادین (Symbolic Link) برای اطمینان بیشتر
+          sudo ln -sf $(which aidl) /usr/bin/aidl || true
 
       - name: Install Buildozer and Cython
         run: |
@@ -56,8 +81,7 @@ jobs:
 
       - name: Build with Buildozer
         run: |
-          # اجرای Buildozer با دستور مخصوص برای جلوگیری از خطاهای مسیر
-          # ما از یک متغیر محیطی استفاده می‌کنیم تا به Buildozer بگوییم از SDK سیستم استفاده کند
+          # استفاده از فلگ برای اجبار به استفاده از تنظیمات موجود
           buildozer android debug
 
       - name: Upload APK
