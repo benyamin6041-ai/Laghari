@@ -20,16 +20,9 @@ jobs:
       - name: Install System Dependencies
         run: |
           sudo apt-get update
-          # نصب پکیج‌های سیستم عامل و کتابخانه‌های مورد نیاز Kivy
+          # فقط کتابخانه‌های سیستمی که برای کامپایل نیاز هستند را نصب می‌کنیم
           sudo apt-get install -y python3-pip git zip unzip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo-dev cmake libffi-dev libssl-dev
           
-          # نصب ابزارهای اندروید برای رفع خطای Aidl
-          sudo apt-get install -y android-sdk
-          
-          # ایجاد لینک میانبر برای رفع مشکل شناسایی نشدن aidl توسط Buildozer
-          # این بخش حیاتی‌ترین قسمت برای حل مشکل شماست
-          sudo ln -s /usr/lib/android-sdk/tools/bin/aidl /usr/bin/aidl || true
-
       - name: Install Buildozer and Cython
         run: |
           pip install --upgrade pip
@@ -37,8 +30,7 @@ jobs:
 
       - name: Build with Buildozer
         run: |
-          # اجرای عملیات بیلد
-          # استفاده از -v برای دیدن جزئیات دقیق در کنسول گیت‌هاب
+          # اجرای بیلد با سطح لاگ 2 برای دیدن جزئیات
           buildozer -v android debug
 
       - name: Upload APK
